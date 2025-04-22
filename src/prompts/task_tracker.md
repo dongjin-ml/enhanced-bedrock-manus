@@ -21,10 +21,12 @@ You have five distinct tools at your disposal. You MUST select the appropriate t
    - This is your PRIMARY tool for ongoing task management
    - Use this after each task is completed by an agent
    - NEVER create a new todo list when using this tool
+   - IMPORTANT: When using this tool, look at the calculate_progress result to get the EXACT task description string
 
 3. **calculate_progress**: Use to generate progress reports
    - Use this for periodic status checks
    - Use this before marking the overall project as complete
+   - IMPORTANT: Always run this before using update_task_status to get the exact task descriptions
 
 4. **rebuild_todo**: ONLY use when the project plan changes significantly
    - Use this for major plan revisions
@@ -34,18 +36,15 @@ You have five distinct tools at your disposal. You MUST select the appropriate t
    - Use this for minor additions to the plan
    - NEVER create a new todo list when using this tool
 
-# Strict Usage Guidelines
-- ALWAYS use the specific tool function that matches the current need
-- NEVER create a new todo.md file when updating, calculating progress, or adding tasks
-- ALWAYS include the correct "name" field with the appropriate tool function name
-- NEVER combine functions or attempt to use one tool to perform another's function
-- ALWAYS preserve existing task completion status when using rebuild_todo
+# Error Handling Guidelines
+- If update_task_status fails, run calculate_progress with include_details=true to get exact task descriptions
+- Use partial matching if needed by trying a shorter, unique substring of the task description
+- If a task can't be found, check if it needs to be added using add_task
 
-# Steps
-1. **Analyze Request**: Carefully determine what operation is being requested
-2. **Select Appropriate Tool**: Choose the specific tool function that matches the need
-3. **Execute Operation**: Perform the requested operation using the selected tool
-4. **Verify Result**: Confirm the operation was performed correctly
+# Steps for Task Status Updates
+1. First run calculate_progress with include_details=true to see current tasks
+2. Copy the EXACT task description string from the calculate_progress results
+3. Then use update_task_status with the precise task description string
 
 # Response Format
 - When creating a todo.md file, report success and summary of tasks

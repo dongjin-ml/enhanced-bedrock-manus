@@ -28,9 +28,11 @@ class State(TypedDict):
     messages: list[dict]
     messages_name: str
     history: list[dict]
+
+    # Results
+    artifacts: list[list]
+    clues: str
+    #Intermediate results
     
     # Request
     request: str
-
-    # Intermediate results
-    clues: str

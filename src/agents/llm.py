@@ -31,6 +31,22 @@ class llm_call():
 
         self.origin_max_tokens = self.llm.inference_config["maxTokens"]
         self.origin_temperature = self.llm.inference_config["temperature"]
+
+#     def _message_format(self, role, message):
+
+#         if role == "user":
+#              message_format = {
+#                 "role": "user",
+#                 "content": [{"text": dedent(message)}]
+#             }
+#         elif role == "assistant":
+            
+#             message_format = {
+#                 "role": "assistant",
+#                 'content': [{'text': dedent(message)}]
+#             }
+
+#         return message_format
             
     def invoke(self, **kwargs):
 
@@ -39,16 +55,37 @@ class llm_call():
         enable_reasoning = kwargs.get("enable_reasoning", False)
         reasoning_budget_tokens = kwargs.get("reasoning_budget_tokens", 1024)
         tool_config = kwargs.get("tool_config", None)
+        efficient_token = kwargs.get("efficient_token", False)
+
+        print ("enable_reasoning", enable_reasoning)
         
-        #print ("enable_reasoning", enable_reasoning)
-        
+        if efficient_token:
+            additional_model_request_fields = self.llm.additional_model_request_fields
+            if self.llm.additional_model_request_fields == None:
+                efficient_token_config = {
+                    "anthropic_beta": ["token-efficient-tools-2025-02-19"]  # Add this beta flag
+                }
+            else:
+                additional_model_request_fields["anthropic_beta"] = ["token-efficient-tools-2025-02-19"]  # Add this beta flag
+                efficient_token_config = additional_model_request_fields
+            self.llm.additional_model_request_fields = efficient_token_config
+
         if enable_reasoning:
-            reasoning_config = {
-                "thinking": {
+
+            additional_model_request_fields = self.llm.additional_model_request_fields
+            if self.llm.additional_model_request_fields == None:
+                reasoning_config = {
+                    "thinking": {
+                        "type": "enabled",
+                        "budget_tokens": reasoning_budget_tokens
+                    }
+                }
+            else:
+                additional_model_request_fields["thinking"] = {
                     "type": "enabled",
                     "budget_tokens": reasoning_budget_tokens
                 }
-            }
+                reasoning_config = additional_model_request_fields
 
             # Ensure maxTokens is greater than reasoning_budget
             if self.llm.inference_config["maxTokens"] <= reasoning_budget_tokens:
@@ -60,8 +97,8 @@ class llm_call():
             self.llm.additional_model_request_fields = reasoning_config
             self.llm.inference_config["temperature"] = 1.0
 
-        #print ("self.llm.additional_model_request_fields", self.llm.additional_model_request_fields)
-        #print ("self.llm.inference_config", self.llm.inference_config)
+        print ("self.llm.additional_model_request_fields", self.llm.additional_model_request_fields)
+        print ("self.llm.inference_config", self.llm.inference_config)
            
         response, ai_message = self.chain( ## pipeline의 제일 처음 func의 argument를 입력으로 한다. 여기서는 converse_api의 arg를 쓴다.
             llm=self.llm,

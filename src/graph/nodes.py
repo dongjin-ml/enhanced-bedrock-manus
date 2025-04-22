@@ -246,22 +246,36 @@ def reporter_node(state: State) -> Command[Literal["supervisor"]]:
     """Reporter node that write a final report."""
     logger.info("Reporter write final report")
 
-    system_prompts, messages = apply_prompt_template("reporter", state)
-    llm = get_llm_by_type(AGENT_LLM_MAP["reporter"])
-    llm.stream = True
-    llm_caller = llm_call(llm=llm, verbose=False, tracking=False)
+    #system_prompts, messages = apply_prompt_template("reporter", state)
+    #llm = get_llm_by_type(AGENT_LLM_MAP["reporter"])
+    #llm.stream = True
+    #llm_caller = llm_call(llm=llm, verbose=False, tracking=False)
+
+    # clues = state.get("clues", "")
+    # messages[-1]["content"][-1]["text"] = '\n\n'.join([messages[-1]["content"][-1]["text"], clues])
+
+    # response, ai_message = llm_caller.invoke(
+    #     messages=messages,
+    #     system_prompts=system_prompts,
+    #     #tool_config=tool_config,
+    #     enable_reasoning=False,
+    #     reasoning_budget_tokens=8192
+    # )
+
+    #full_response = response["text"]
 
     clues = state.get("clues", "")
+    _, messages = apply_prompt_template("reporter", state)
     messages[-1]["content"][-1]["text"] = '\n\n'.join([messages[-1]["content"][-1]["text"], clues])
+    state["messages"] = messages
 
-    response, ai_message = llm_caller.invoke(
-        messages=messages,
-        system_prompts=system_prompts,
-        #tool_config=tool_config,
-        enable_reasoning=False,
-        reasoning_budget_tokens=8192
-    )
-    full_response = response["text"]
+    print ('state["messages"]', state["messages"])
+
+    reporter_agent = create_react_agent(agent_name="reporter")
+    result = reporter_agent.invoke(state=state)
+
+    full_response = result["content"][-1]["text"]
+
     logger.debug(f"Current state messages: {state['messages']}")
     logger.debug(f"reporter response: {full_response}")
 

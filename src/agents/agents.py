@@ -11,8 +11,7 @@ from src.tools.research_tools import research_tool_config, process_search_tool
 from src.tools.coder_tools import coder_tool_config, process_coder_tool
 from src.tools.browser_tools import browser_tool_config, process_browser_tool
 from src.tools.task_tracker_tool import task_tracker_tool_config, process_task_tracker_tool
-
-process_task_tracker_tool
+from src.tools.reporter_tools import reporter_tool_config, process_reporter_tool
 
 class create_react_agent():
 
@@ -27,9 +26,10 @@ class create_react_agent():
         elif self.agent_name == "coder": self.tool_config = coder_tool_config
         elif self.agent_name == "browser": self.tool_config = browser_tool_config
         elif self.agent_name == "task_tracker": self.tool_config = task_tracker_tool_config
+        elif self.agent_name == "reporter": self.tool_config = reporter_tool_config
         
         # 반복 대화 처리를 위한 설정
-        self.MAX_TURNS = 15  # 무한 루프 방지용 최대 턴 수
+        self.MAX_TURNS = 30  # 무한 루프 방지용 최대 턴 수
         self.turn = 0
         self.final_response = False
         
@@ -74,6 +74,7 @@ class create_react_agent():
                         elif self.agent_name == "coder": tool_result_message = process_coder_tool(tool)
                         elif self.agent_name == "browser": tool_result_message = process_browser_tool(tool)
                         elif self.agent_name == "task_tracker": tool_result_message = process_task_tracker_tool(tool)
+                        elif self.agent_name == "reporter": tool_result_message = process_reporter_tool(tool)
 
                         messages.append(tool_result_message)
                         print(f"도구 실행 결과를 대화에 추가했습니다.")

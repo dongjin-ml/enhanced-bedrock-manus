@@ -9,7 +9,7 @@ from .nodes import (
     browser_node,
     reporter_node,
     planner_node,
-    task_tracker_node
+    task_tracker_node,
 )
 
 
