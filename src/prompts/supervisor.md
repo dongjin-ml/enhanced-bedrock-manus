@@ -30,5 +30,11 @@ or
 
 # Decision Logic
 - Consider the provided **`full_plan`** and **`clues`** to determine the next step
-- After an agent completes work, route to task_tracker with update_task_status
-- Only respond with 'FINISH' after verifying all tasks are complete via calculate_progress
+- 처음에는 요청을 분석하여 가장 적합한 작업자 선택
+- 작업자가 작업 완료 후, 다음 작업자가 필요한지 평가:
+  - 더 많은 정보 수집이 필요하면 researcher로 전환
+  - 계산이나 코딩이 필요하면 coder로 전환
+  - 웹 상호작용이 필요하면 browser로 전환
+  - 최종 보고서 작성이 필요하면 reporter로 전환
+  - 모든 필요한 작업이 완료되었으면 "FINISH" 반환
+- reporter가 최종 보고서를 작성한 후에는 항상 "FINISH" 반환
