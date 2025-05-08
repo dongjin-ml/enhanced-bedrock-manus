@@ -8,6 +8,7 @@ from typing import Optional
 # External Dependencies:
 import json
 import boto3
+import logging
 from textwrap import dedent
 from botocore.config import Config
 from botocore.exceptions import ClientError
@@ -15,7 +16,26 @@ from botocore.exceptions import ClientError
 # Langchain
 from langchain.callbacks.base import BaseCallbackHandler
 
+# 새 핸들러와 포맷터 설정
+logger = logging.getLogger(__name__)
+logger.propagate = False  # 상위 로거로 메시지 전파 중지
+for handler in logger.handlers[:]:
+    logger.removeHandler(handler)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('\n%(levelname)s [%(name)s] %(message)s')  # 로그 레벨이 동적으로 표시되도록 변경
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+# DEBUG와 INFO 중 원하는 레벨로 설정
+logger.setLevel(logging.INFO)  # 기본 레벨은 INFO로 설정
 
+class Colors:
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
 
 def get_bedrock_client(
     assumed_role: Optional[str] = None,
@@ -41,17 +61,20 @@ def get_bedrock_client(
     else:
         target_region = region
 
-    print(f"Create new client\n  Using region: {target_region}")
+    #print(f"Create new client\n  Using region: {target_region}")
+    logger.debug(f"{Colors.RED}Create new client, Using region: {target_region}{Colors.END}")
     session_kwargs = {"region_name": target_region}
     client_kwargs = {**session_kwargs}
 
     profile_name = os.environ.get("AWS_PROFILE")
-    print(f"  Using profile: {profile_name}")
+    #print(f"  Using profile: {profile_name}")
+    logger.debug(f"{Colors.RED}Using profile: {profile_name}{Colors.END}")
     if profile_name:
-        print(f"  Using profile: {profile_name}")
+        #print(f"  Using profile: {profile_name}")
         session_kwargs["profile_name"] = profile_name
 
     retry_config = Config(
+        read_timeout=300,
         region_name=target_region,
         retries={
             "max_attempts": 50,
@@ -82,6 +105,7 @@ def get_bedrock_client(
     )
 
     print("boto3 Bedrock client successfully created!")
+    logger.debug(f"{Colors.RED}boto3 Bedrock client successfully created!{Colors.END}")
     print(bedrock_client._endpoint)
     return bedrock_client
 
@@ -171,6 +195,10 @@ class bedrock_utils():
 
     @staticmethod
     def get_message_from_string(role, string, img=None):
+        
+        if not string or string.strip() == "":
+            string = "Default message"  # 또는 에러 처리
+
         message = {
             "role": role,
             "content": [{"text": dedent(string)}]
@@ -230,7 +258,7 @@ class bedrock_utils():
         stream = kwargs["stream"]
         callback = kwargs["callback"]
         
-        output = {"text": "", "toolUse": None}
+        output = {"text": "","reasoning": "", "signature": "", "toolUse": None}
         message = {"content": []}
                 
         if not stream:
@@ -290,14 +318,19 @@ class bedrock_utils():
                         delta = event['contentBlockDelta']['delta']
                         if "reasoningContent" in delta:
                             if "text" in delta["reasoningContent"]:
-                                reasoning_text = delta["reasoningContent"]["text"]
-                                print("\033[94m" + reasoning_text + "\033[0m", end="")
-                            else: print("") 
+                                output["reasoning"] += delta["reasoningContent"]["text"]
+                                #print("\033[94m" + reasoning_text + "\033[0m", end="")
+                                print("\033[94m" + delta["reasoningContent"]["text"] + "\033[0m", end="")
+                            elif 'signature' in delta["reasoningContent"]:
+                                output["signature"] += delta["reasoningContent"]["signature"]
+                            else:
+                                print("") 
                         if 'toolUse' in delta:
                             if 'input' not in tool_use: tool_use['input'] = ''
                             tool_use['input'] += delta['toolUse']['input']
-                            print("\033[92m" + delta['toolUse']['input'] + "\033[0m", end="")
-                            #callback.on_llm_new_token(delta['toolUse']['input'])                            
+                            #print("\033[92m" + delta['toolUse']['input'] + "\033[0m", end="")
+                            #logger.info(f"{Colors.BOLD}\n{delta['toolUse']['input']}{Colors.END}")
+                            #callback.on_llm_new_token(delta['toolUse']['input'])                           
                         elif 'text' in delta:
                             output["text"] += delta['text']
                             callback.on_llm_new_token(delta['text'])                            
@@ -308,13 +341,14 @@ class bedrock_utils():
                             output["toolUse"] = {'toolUse': tool_use}
                             tool_use = {}
                         else:
-                            message['content'].append({'text': output["text"]})
-                            #output["text"] = ''
+                            if output["text"] != "":
+                                message['content'].append({'text': output["text"]})
+                            if output["reasoning"] != "":
+                                message['content'].append({'reasoningContent': {"reasoningText": {"text": output["reasoning"], "signature": output["signature"]}}})
                     elif 'messageStop' in event:
                         stop_reason = event['messageStop']['stopReason']
                         output["stop_reason"] = stop_reason
-                        #print(f"\nStop reason: {event['messageStop']['stopReason']}")
-
+                        print(f"\nStop reason: {event['messageStop']['stopReason']}")
                 if verbose:
                     if 'metadata' in event:
                         metadata = event['metadata']

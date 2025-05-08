@@ -21,7 +21,7 @@ tool_list = [
             }
         }
     },
-     {
+    {
         "toolSpec": {
             "name": "bash_tool",
             "description": "Use this to execute bash command and do necessary operations.",
