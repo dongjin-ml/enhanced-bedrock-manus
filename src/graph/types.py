@@ -32,6 +32,7 @@ class State(TypedDict):
     # Results
     artifacts: list[list]
     clues: str
+    follow_up_questions: list[str]
     #Intermediate results
     
     # Request

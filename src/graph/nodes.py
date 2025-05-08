@@ -33,7 +33,7 @@ formatter = logging.Formatter('\n%(levelname)s [%(name)s] %(message)s')  # 로�
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 # DEBUG와 INFO 중 원하는 레벨로 설정
-#logger.setLevel(logging.INFO)  # 기본 레벨은 INFO로 설정
+logger.setLevel(logging.INFO)  # 기본 레벨은 INFO로 설정
 
 RESPONSE_FORMAT = "Response from {}:\n\n<response>\n{}\n</response>\n\n*Please execute the next step.*"
 FULL_PLAN_FORMAT = "Here is full plan :\n\n<full_plan>\n{}\n</full_plan>\n\n*Please consider this to select the next step.*"
@@ -48,44 +48,60 @@ class Colors:
     UNDERLINE = '\033[4m'
     END = '\033[0m'
 
+
 def clarification_node(state: State):
     """Node for the clarifier agent that improve understanding of user's intent."""
     logger.info(f"{Colors.GREEN}===== Clarification agent starting task ====={Colors.END}")
     research_agent = create_react_agent(agent_name="clarifier")
     result = research_agent.invoke(state=state)
+    follow_up_questions = json.loads(result["content"][-1]["text"])
 
-
-    print ("result", result)
-    
     clues = state.get("clues", "")
     clues = '\n\n'.join([clues, CLUES_FORMAT.format("clarifier", result["content"][-1]["text"])])
-    logger.info("Research agent completed task")
-    logger.info(f"Research agent response: {result["content"][-1]["text"]}")
+    logger.info("Clarification agent completed task")
+    logger.info(f"Clarification agent response: {result["content"][-1]["text"]}")
 
     history = state.get("history", [])
     history.append({"agent":"clarifier", "message": result["content"][-1]["text"]})
     return Command(
         update={
             "messages": [get_message_from_string(role="user", string=RESPONSE_FORMAT.format("clarifier", result["content"][-1]["text"]), imgs=[])],
-            "messages_name": "researcher",
-            "clues": clues,
-            "history": history
+            "messages_name": "clarifier",
+            "clues":clues,
+            "history": history,
+            "follow_up_questions": follow_up_questions["questions"]
         },
-        goto="supervisor",
+        goto="human_feedback",
     )
 
-# def human_feedback(state: State):
-#     """Node for the human_feedback agent that improve understanding of user's intent."""
-#     logger.info(f"{Colors.GREEN}===== Human feedback agent starting task ====={Colors.END}")
-#     research_agent = create_react_agent(agent_name="human_feedback")
-#     result = research_agent.invoke(state=state)
+def human_feedback_node(state: State):
+    """Node for the human_feedback agent that improve understanding of user's intent."""
+    logger.info(f"{Colors.GREEN}===== Human feedback agent starting task ====={Colors.END}")
+    follow_up_questions = state.get("follow_up_questions", "")
+    follow_up_questions_str = "\n".join(follow_up_questions)
 
-#     # Get feedback on the report plan from interrupt
-#     interrupt_message = f"""Please provide feedback on the following report plan. 
-#                         \n\n{sections_str}\n
-#                         \nDoes the report plan meet your needs?\nPass 'true' to approve the report plan.\nOr, provide feedback to regenerate the report plan:"""
+    print ("follow_up_questions", follow_up_questions)
+
     
-#     feedback = interrupt(interrupt_message)
+    
+    #research_agent = create_react_agent(agent_name="human_feedback")
+    #result = research_agent.invoke(state=state)
+
+    
+
+    # Get feedback on the report plan from interrupt
+    interrupt_message = f"""Please provide addtional information on your topics. 
+                        \n\n{follow_up_questions_str}\n
+                        \nprovide answers on follow-up questions:"""
+    
+    # 인터럽트 발생시키기
+    print(interrupt_message)
+    feedback = input()
+    #feedback = interrupt(interrupt_message)
+    #feedback = input("Enter your feedback: ")
+
+
+    print ("feedback", feedback)
 
 
 def research_node(state: State) -> Command[Literal["supervisor"]]:

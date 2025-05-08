@@ -79,9 +79,9 @@ class Crawler:
             if src and src.startswith('http'):
                 images.append(src)
 
-        print ("title", title)
-        print ("content", content)
-        print ("images", images)
+        #print ("title", title)
+        #print ("content", content)
+        #print ("images", images)
         
         # Article 객체 생성 및 반환
         article = Article(

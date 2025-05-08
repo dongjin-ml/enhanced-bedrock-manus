@@ -12,25 +12,17 @@ And based on the collected information, you need to create follow-up questions t
     - You MUST perform searches to gather comprehensive context
     - Create a highly targeted search query that will yield the most valuable information
     - Use `tavily_tool` to search the internet for real-time information, current events, or specific data
-    - [CRITICAL] AFTER EACH SEARCH with tavily_tool, you MUST use `crawl_tool` to get detailed content from at least one of the most relevant URLs found in search results
-    - [CRITICAL] Follow this exact workflow for each search:
-        1. Use `tavily_tool` to perform a internet search
-        2. Analyze the search results and identify 1-2 most relevant URLs
-        3. Use `crawl_tool` on these URLs to get full content
-        4. Analyze the crawled content
-        5. Use `python_repl_tool` to save BOTH search and crawl results to './artifacts/bg_info.txt'
-        6. Proceed to next search only after completing all previous steps
+    - Use `crawl_tool` tool to get a readable content in markdown format from url
     Save all gathered information in txt file
-    - [CRITICAL] Process one search query at a time: perform search with tavily_tool -> crawl relevant URLs with crawl_tool -> analyze results -> save to file -> proceed to next search
-    - Take time to analyze and synthesize each search result and crawled content before proceeding to the next search
+    - [CRITICAL] Process one search query at a time: perform search with crawl_tool -> analyze results -> save to file -> proceed to next search
+    - Take time to analyze and synthesize each search result before proceeding to the next search
     - Make the queries specific enough to find high-quality, relevant sources while covering the breadth needed for the report structure.
-    - [CRITICAL] AFTER EACH INDIVIDUAL SEARCH AND CRAWL, immediately use the `python_repl_tool` to save results to './artifacts/bg_info.txt'
+    - [CRITICAL] AFTER EACH INDIVIDUAL SEARCH, immediately use the `python_repl_tool` to save that search's results to './artifacts/bg_info.txt'
     - Create the './artifacts' directory if no files exist there, or append to existing files
     - Record important observations discovered during the process
-    - [CRITICAL] Always document both the search results AND the crawled content in your saved information
 
 2. Clarify the Topic
-   After your initial research (Step for Gather Background Information), engage with the user to clarify any questions that arose.
+  After your initial research (Step for Gather Background Information), engage with the user to clarify any questions that arose.
    - [CRITICAL] You MUST consider all gathered information that saved at './artifacts/bg_info.txt'
    - Ask ONE SET of follow-up questions based on what you learned from your searches
    - Follow-up questions are to understand the topic, goals, constraints, and any preferences
@@ -60,16 +52,11 @@ backup_file = './artifacts/bg_info_backup_{{}}.txt'.format(datetime.now().strfti
 
 # Current analysis parameters - modify these values according to your actual analysis
 stage_name = "Search_query" # Replace with your actual search query text
-search_url = "search_result_url" # Replace with actual URL from search results
-crawl_url = "crawled_url" # Replace with actual URL that was crawled
+url = "target_url" # Replace with actual URL from search results
 result_description = """Description of search results
 Also add actual gathered information.
 Can be written over multiple lines.
 Include result values."""
-
-crawl_result = """Content from crawled page
-Add the relevant information from the crawled page here.
-This should contain the all information extracted from the URL."""
 
 artifact_files = [
     ## Always use paths that include './artifacts/' 
@@ -82,17 +69,12 @@ current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 current_result_text = """
 ==================================================
 ## Search query: {{0}}
-## Search URL: {{1}}
-## Crawled URL: {{2}}
-## Execution Time: {{3}}
+## URL: {{1}}
+## Execution Time: {{2}}
 --------------------------------------------------
-Search Result Description: 
-{{4}}
-
---------------------------------------------------
-Crawled Content:
-{{5}}
-""".format(stage_name, search_url, crawl_url, current_time, result_description, crawl_result)
+Result Description: 
+{{3}}
+""".format(stage_name, url, current_time, result_description)
 
 if artifact_files:
     current_result_text += "--------------------------------------------------\nGenerated Files:\n"
@@ -136,7 +118,7 @@ except Exception as e:
 You must ONLY output the JSON object, nothing else.
 NO descriptions of what you're doing before or after JSON.
 Always respond with ONLY a JSON object in the format: 
-{{"questions": ['1.q1', '2.q2', ...]}}
+{{"questions": ['q1', 'q2', ...]}}
 </output_format>
 
 <note>
