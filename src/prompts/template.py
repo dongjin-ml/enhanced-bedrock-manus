@@ -12,17 +12,18 @@ def get_prompt_template(prompt_name: str) -> str:
 def apply_prompt_template(prompt_name: str, state: AgentState, prompt_cache=False, cache_type="default") -> list:
     
     system_prompts = get_prompt_template(prompt_name)
-    if prompt_name in ["coder", "reporter"]:
-        context = {
-            "CURRENT_TIME": datetime.now().strftime("%a %b %d %Y %H:%M:%S %z"),
-            "USER_REQUEST": state["request"]
-        }
-    elif prompt_name in ["planner"]:
+    if prompt_name in ["planner"]:
         context = {
             "CURRENT_TIME": datetime.now().strftime("%a %b %d %Y %H:%M:%S %z"),
             "ORIGIANL_USER_REQUEST": state["request"],
             "FOLLOW_UP_QUESTIONS": state["follow_up_questions"],
             "USER_FEEDBACK": state["user_feedback"]
+        }
+    elif prompt_name in ["researcher", "coder", "reporter"]:
+        context = {
+            "CURRENT_TIME": datetime.now().strftime("%a %b %d %Y %H:%M:%S %z"),
+            "USER_REQUEST": state["request"],
+            "FULL_PLAN": state["full_plan"]
         }
     else: context = {"CURRENT_TIME": datetime.now().strftime("%a %b %d %Y %H:%M:%S %z")}
     system_prompts = system_prompts.format(**context)

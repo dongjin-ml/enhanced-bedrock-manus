@@ -185,7 +185,7 @@ def supervisor_node(state: State) -> Command[Literal[*TEAM_MEMBERS, "__end__"]]:
     llm.stream = True
     llm_caller = llm_call(llm=llm, verbose=False, tracking=False)
     
-    clues, full_plan = state.get("clues", ""), state.get("full_plan", "")       
+    clues, full_plan = state.get("clues", ""), state.get("full_plan", "")  
     messages[-1]["content"][-1]["text"] = '\n\n'.join([messages[-1]["content"][-1]["text"], FULL_PLAN_FORMAT.format(full_plan), clues])
     
     response, ai_message = llm_caller.invoke(
@@ -237,6 +237,9 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     else: logger.debug(f"{Colors.GREEN}Planner - Prompt Cache Disabled{Colors.END}")
     system_prompts, messages = apply_prompt_template("planner", state, prompt_cache=prompt_cache, cache_type=cache_type)
     # whether to enable deep thinking mode
+
+    full_plan = state.get("full_plan", "")
+    messages[-1]["content"][-1]["text"] = '\n\n'.join([messages[-1]["content"][-1]["text"], FULL_PLAN_FORMAT.format(full_plan)])
    
     llm = get_llm_by_type(AGENT_LLM_MAP["planner"])    
     llm.stream = True

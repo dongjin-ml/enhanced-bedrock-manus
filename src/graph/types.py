@@ -34,7 +34,6 @@ class State(TypedDict):
     clues: str
     follow_up_questions: list[str]
     user_feedback: str
-    #Intermediate results
     
     # Request
     request: str
