@@ -52,7 +52,7 @@ class create_react_agent():
         elif self.agent_name == "reporter": self.tool_config = reporter_tool_config
             
         # 반복 대화 처리를 위한 설정
-        self.MAX_TURNS = 30  # 무한 루프 방지용 최대 턴 수
+        self.MAX_TURNS = 50  # 무한 루프 방지용 최대 턴 수
         self.turn = 0
         self.final_response = False
         
