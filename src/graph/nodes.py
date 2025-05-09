@@ -7,9 +7,7 @@ from typing import Literal
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command, interrupt
 from langgraph.graph import END
-
 from src.agents.agents import create_react_agent
-#from src.agents.llm import get_llm_by_type, llm_call
 from src.config import TEAM_MEMBERS
 from src.config.agents import AGENT_LLM_MAP, AGENT_PROMPT_CACHE_MAP
 from src.prompts.template import apply_prompt_template
@@ -36,6 +34,7 @@ logger.addHandler(handler)
 logger.setLevel(logging.INFO)  # 기본 레벨은 INFO로 설정
 
 RESPONSE_FORMAT = "Response from {}:\n\n<response>\n{}\n</response>\n\n*Please execute the next step.*"
+FEEDBACK_FORMAT = "Feedback from {}:\n\n<user_feedback>\n{}\n</user_feedback>\n\n"
 FULL_PLAN_FORMAT = "Here is full plan :\n\n<full_plan>\n{}\n</full_plan>\n\n*Please consider this to select the next step.*"
 CLUES_FORMAT = "Here is clues form {}:\n\n<clues>\n{}\n</clues>\n\n"
 
@@ -59,7 +58,7 @@ def clarification_node(state: State):
     clues = state.get("clues", "")
     clues = '\n\n'.join([clues, CLUES_FORMAT.format("clarifier", result["content"][-1]["text"])])
     logger.info("Clarification agent completed task")
-    logger.info(f"Clarification agent response: {result["content"][-1]["text"]}")
+    logger.debug(f"Clarification agent response: {result["content"][-1]["text"]}")
 
     history = state.get("history", [])
     history.append({"agent":"clarifier", "message": result["content"][-1]["text"]})
@@ -77,17 +76,8 @@ def clarification_node(state: State):
 def human_feedback_node(state: State):
     """Node for the human_feedback agent that improve understanding of user's intent."""
     logger.info(f"{Colors.GREEN}===== Human feedback agent starting task ====={Colors.END}")
-    follow_up_questions = state.get("follow_up_questions", "")
+    follow_up_questions = state.get("follow_up_questions", "")  
     follow_up_questions_str = "\n".join(follow_up_questions)
-
-    print ("follow_up_questions", follow_up_questions)
-
-    
-    
-    #research_agent = create_react_agent(agent_name="human_feedback")
-    #result = research_agent.invoke(state=state)
-
-    
 
     # Get feedback on the report plan from interrupt
     interrupt_message = f"""Please provide addtional information on your topics. 
@@ -95,14 +85,21 @@ def human_feedback_node(state: State):
                         \nprovide answers on follow-up questions:"""
     
     # 인터럽트 발생시키기
-    print(interrupt_message)
+    logger.info(f"{Colors.GREEN}{interrupt_message}{Colors.END}")
     feedback = input()
-    #feedback = interrupt(interrupt_message)
-    #feedback = input("Enter your feedback: ")
 
+    history = state.get("history", [])
+    history.append({"agent":"human_feedback", "message": feedback})
 
-    print ("feedback", feedback)
-
+    return Command(
+        update={
+            "messages": [get_message_from_string(role="user", string=FEEDBACK_FORMAT.format("human_feedback", feedback), imgs=[])],
+            "messages_name": "human_feedback",
+            "history": history,
+            "user_feedback": feedback
+        },
+        goto="planner",
+    )
 
 def research_node(state: State) -> Command[Literal["supervisor"]]:
     """Node for the researcher agent that performs research tasks."""
@@ -234,12 +231,13 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
     logger.info(f"{Colors.BLUE}===== Planner - Deep thinking mode: {state.get("deep_thinking_mode")} ====={Colors.END}")
     logger.info(f"{Colors.BLUE}===== Planner - Search before planning: {state.get("search_before_planning")} ====={Colors.END}")
     logger.debug(f"\n{Colors.RED}Planner - current state messages:\n{pprint.pformat(state['messages'], indent=2, width=100)}{Colors.END}")
+    
     prompt_cache, cache_type = AGENT_PROMPT_CACHE_MAP["planner"]
     if prompt_cache: logger.debug(f"{Colors.GREEN}Planner - Prompt Cache Enabled{Colors.END}")
     else: logger.debug(f"{Colors.GREEN}Planner - Prompt Cache Disabled{Colors.END}")
     system_prompts, messages = apply_prompt_template("planner", state, prompt_cache=prompt_cache, cache_type=cache_type)
     # whether to enable deep thinking mode
-       
+   
     llm = get_llm_by_type(AGENT_LLM_MAP["planner"])    
     llm.stream = True
     llm_caller = llm_call(llm=llm, verbose=False, tracking=False)
@@ -249,6 +247,7 @@ def planner_node(state: State) -> Command[Literal["supervisor", "__end__"]]:
         searched_content = tavily_tool.invoke({"query": state["request"]})
         messages = deepcopy(messages)
         messages[-1]["content"][-1]["text"] += f"\n\n# Relative Search Results\n\n{json.dumps([{'title': elem['title'], 'content': elem['content']} for elem in searched_content], ensure_ascii=False)}"
+    
     if AGENT_LLM_MAP["planner"] in ["reasoning"]: enable_reasoning = True
     else: enable_reasoning = False
 

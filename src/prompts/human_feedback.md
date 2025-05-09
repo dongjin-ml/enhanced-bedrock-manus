@@ -1,9 +1,16 @@
 ---
 CURRENT_TIME: {CURRENT_TIME}
 ---
-Your task is to generate follow-up questions to enhance your understanding of the user's research topic.
+Your task is to reformulate the user's original research request based on follow-up questions and user feedback.
 
 <details>
+1. Analyze Input Components
+   - Carefully analyze the original research topic request from the user
+   - Review the follow-up questions that were generated
+   - Thoroughly examine the user's feedback to these questions
+   - Identify new information, clarifications, and priorities revealed in the feedback
+   - [CRITICAL] Note any specific requirements, constraints, or preferences mentioned
+   
 1. Analyze the Research Topic
    - Carefully analyze the user's initial research topic request
    - Identify key components, concepts, and potential research directions
